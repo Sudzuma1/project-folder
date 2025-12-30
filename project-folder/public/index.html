@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Городская поляна 🌿</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"> 
+    <style>
+        :root {
+            --green-primary: #4CAF50; /* Более сочный зеленый */
+            --green-light: #81C784;
+            --green-dark: #388E3C;
+            --gold-premium: #FFD700;
+            --background-start: #e8f5e9; /* Светло-зеленый */
+            --background-end: #ffffff;
+            --text-color: #212121;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, var(--background-start) 0%, var(--background-end) 100%);
+            color: var(--text-color);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        header {
+            background: linear-gradient(90deg, var(--green-dark) 0%, var(--green-primary) 100%);
+            color: white;
+            padding: 1.5rem;
+            text-align: center;
+            font-size: 2rem;
+            font-weight: 700;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            animation: slideDown 0.5s ease-in-out;
+        }
+
+        @keyframes slideDown {
+            from { transform: translateY(-100%); }
+            to { transform: translateY(0); }
+        }
+
+        .notice {
+            text-align: center;
+            color: #636e72;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 1rem;
+            margin: 1rem auto;
+            max-width: 90%;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            font-size: 0.9rem;
+            animation: fadeIn 1s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        main {
+            padding: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .ad-form, .promo-form {
+            background: white;
+            padding: 2rem;
+            border-radius: 16px;
+            margin-bottom: 2rem;
+            /* Мягкая зеленая тень */
+            box-shadow: 0 10px 30px rgba(46, 204, 113, 0.15); 
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            animation: slideUp 0.5s ease-in-out;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .ad-form:hover, .promo-form:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(46, 204, 113, 0.25);
+        }
+
+        /* Стиль для инпутов */
+        .ad-form input:not([type="file"]), .ad-form textarea, .promo-form input, #searchBar {
+            width: 100%;
+            padding: 0.8rem;
+            margin-bottom: 1rem;
+            border: 2px solid #dfe6e9;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .ad-form input:focus, .ad-form textarea:focus, .promo-form input:focus, #searchBar:focus {
+            border-color: var(--green-primary);
+            box-shadow: 0 0 8px rgba(76, 175, 80, 0.4);
+            outline: none;
+        }
+
+        .ad-form textarea {
+            resize: vertical; /* Позволить вертикальный ресайз */
+            min-height: 80px;
+        }
+
+        /* Стиль для кнопок */
+        .ad-form button, .promo-whatsapp-button {
+            width: 100%;
+            padding: 0.8rem;
+            background: linear-gradient(90deg, var(--green-primary) 0%, var(--green-light) 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.3s ease, transform 0.2s ease, filter 0.3s;
+        }
+
+        .ad-form button:hover, .promo-whatsapp-button:hover {
+            background: linear-gradient(90deg, var(--green-dark) 0%, var(--green-primary) 100%);
+            transform: scale(1.01);
+            filter: brightness(1.1);
+        }
+        
+        /* Секция Премиум */
+        .promo-form {
+            text-align: center;
+            background: #fffde7;
+            border: 2px solid var(--gold-premium);
+        }
+
+        .promo-form h3 {
+            color: var(--text-color);
+            font-size: 1.6rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .promo-whatsapp-button {
+            display: block;
+            margin-top: 1rem;
+            background: #25D366; /* WhatsApp Green */
+        }
+        
+        /* Предварительный просмотр фото */
+        #photoPreview {
+            width: 100%;
+            height: 150px;
+            background-color: #f0f0f0;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #7f8c8d;
+            overflow: hidden;
+        }
+
+        #photoPreview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        /* Счетчики символов */
+        .char-count {
+            text-align: right;
+            font-size: 0.8rem;
+            color: #7f8c8d;
+            margin-top: -0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Сетка Объявлений */
+        .ad-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+            padding: 1rem 0;
+        }
+
+        .ad {
+            background: white;
+            padding: 1rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        .ad:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .ad.premium {
+            border: 3px solid var(--gold-premium);
+            background: #fffde7;
+            position: relative;
+        }
+
+        .ad.premium::before {
+            content: "🌟 ПРЕМИУМ";
+            display: block;
+            background: linear-gradient(45deg, #ffeb3b 0%, #fbc02d 100%);
+            color: var(--text-color);
+            font-weight: 700;
+            padding: 0.5rem;
+            text-align: center;
+            border-radius: 12px 12px 0 0;
+            margin: -1rem -1rem 1rem -1rem;
+            letter-spacing: 1px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .ad img {
+            width: 100%;
+            height: 160px;
+            object-fit: cover;
+            border-radius: 12px;
+            margin-bottom: 0.5rem;
+        }
+
+        .ad h3 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--green-dark);
+        }
+
+        .ad p {
+            font-size: 0.9rem;
+            color: #636e72;
+            margin-bottom: 0.8rem;
+            min-height: 40px; /* Фиксированная высота для единообразия */
+        }
+
+        /* Стили кнопки удаления */
+        .ad button {
+            width: 100%;
+            padding: 0.5rem;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s ease, transform 0.2s ease;
+            margin-top: auto; 
+        }
+
+        .ad button:hover {
+            background: #c0392b;
+            transform: scale(1.02);
+        }
+
+        #countdown {
+            text-align: center;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            margin: 1rem auto;
+            max-width: 300px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            font-size: 1rem;
+            color: #2d3436;
+        }
+
+        /* Адаптивность */
+        @media screen and (max-width: 768px) {
+            header {
+                font-size: 1.5rem;
+                padding: 1rem;
+            }
+
+            main {
+                padding: 1rem;
+            }
+
+            .ad-form, .promo-form {
+                padding: 1.5rem;
+            }
+
+            /* ВОТ ЭТОТ БЛОК ОТВЕЧАЕТ ЗА 2 КОЛОНКИ НА ТЕЛЕФОНЕ */
+            .ad-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                gap: 1rem;
+            }
+
+            .ad {
+                padding: 0.8rem;
+            }
+
+            .ad img {
+                height: 100px;
+            }
+
+            .ad h3 {
+                font-size: 0.9rem;
+            }
+
+            .ad p {
+                font-size: 0.8rem;
+                min-height: 30px; /* Уменьшаем для мобильных */
+            }
+
+            .ad button {
+                padding: 0.4rem;
+                font-size: 0.8rem;
+            }
+
+            .notice, #countdown {
+                font-size: 0.8rem;
+                padding: 0.8rem;
+            }
+            
+            footer {
+                padding: 1rem;
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>Городская поляна 🥕</header>
+    <div class="notice">
+        Тестовая версия. Фото < 2 MB. Сжимайте изображения для быстрой загрузки.
+    </div>
+    <main>
+        
+        <div class="ad-form">
+            <h2>Добавить объявление</h2>
+            <form id="adForm">
+                <input type="text" id="title" placeholder="Название (макс. 50 символов)" maxlength="50" required>
+                
+                <input type="file" id="photo" accept="image/*" required>
+                <div id="photoPreview">
+                    <i class="fas fa-camera"></i> Предварительный просмотр фото
+                </div>
+                
+                <textarea id="description" placeholder="Подробное описание (макс. 200 символов)" maxlength="200" required></textarea>
+                <div class="char-count">Осталось: <span id="descCharCount">200</span></div>
+                
+                <input type="text" id="promoCode" placeholder="Промокод (если есть)">
+                <button type="submit">Добавить на модерацию</button>
+            </form>
+            <div class="notification" id="submissionNotification" style="display: none; background: #4CAF50; color: white; padding: 1rem; border-radius: 8px; margin-top: 1rem; text-align: center;">
+                ✅ Объявление отправлено на модерацию.
+            </div>
+        </div>
+        
+        <div class="promo-form">
+            <h3>✨ Премиум-размещение ✨</h3>
+            <p>Выделите свое объявление! 3 премиум-места за 500 тенге.</p>
+            <a href="https://wa.me/77057247069?text=Хочу%203%20премиум-объявления%20за%20500%20тенге" target="_blank" class="promo-whatsapp-button">
+                <i class="fab fa-whatsapp"></i> Написать в WhatsApp
+            </a>
+        </div>
+        
+        <input type="text" id="searchBar" placeholder="🔍 Поиск по объявлениям..." style="margin-bottom: 2rem;">
+        
+        <div class="loading" id="loading" style="text-align: center; margin: 1rem 0;">Загрузка объявлений...</div>
+        <div class="ad-grid" id="adGrid"></div>
+        
+    </main>
+    
+    <div id="countdown">Сброс объявлений через: <span id="timer"></span></div>
+    
+    <footer>© 2025 Городская поляна</footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script> 
+    <script>
+        const socket = io();
+        const adForm = document.getElementById('adForm');
+        const adGrid = document.getElementById('adGrid');
+        const loading = document.getElementById('loading');
+        const timerElement = document.getElementById('timer');
+        const submissionNotification = document.getElementById('submissionNotification');
+        const searchBar = document.getElementById('searchBar');
+        const descriptionInput = document.getElementById('description');
+        const descCharCount = document.getElementById('descCharCount');
+        const photoInput = document.getElementById('photo');
+        const photoPreview = document.getElementById('photoPreview');
+
+        let userId = localStorage.getItem('userId');
+        if (!userId) {
+            userId = 'user_' + Math.random().toString(36).substr(2, 9);
+            localStorage.setItem('userId', userId);
+        }
+
+        // --- Улучшения UX Формы ---
+        
+        // 1. Предварительный просмотр фото
+        photoInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    photoPreview.innerHTML = `<img src="${event.target.result}" alt="Предпросмотр фото">`;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                photoPreview.innerHTML = '<i class="fas fa-camera"></i> Предварительный просмотр фото';
+            }
+        });
+
+        // 2. Счетчик символов
+        descriptionInput.addEventListener('input', () => {
+            const maxLength = descriptionInput.maxLength;
+            const currentLength = descriptionInput.value.length;
+            descCharCount.textContent = maxLength - currentLength;
+        });
+
+
+        // --- Логика Отправки Формы ---
+
+        adForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const title = document.getElementById('title').value;
+            const photoFile = photoInput.files[0];
+            const description = descriptionInput.value;
+            const promoCode = document.getElementById('promoCode').value;
+
+            if (!title || !photoFile || !description) {
+                alert('Пожалуйста, заполните все обязательные поля!');
+                return;
+            }
+
+            loading.style.display = 'block';
+
+            try {
+                if (photoFile.size > 5242880) { // 5MB
+                    alert('Фото слишком большое (больше 5MB). Пожалуйста, выберите файл меньшего размера.');
+                    loading.style.display = 'none';
+                    return;
+                }
+
+                const compressedFile = await imageCompression(photoFile, {
+                    maxSizeMB: 2, 
+                    maxWidthOrHeight: 1600,
+                    useWebWorker: true
+                });
+
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const newAd = { title, photo: e.target.result, description, userId, promoCode: promoCode || null };
+                    
+                    socket.emit('new-ad', newAd, (response) => {
+                        loading.style.display = 'none';
+                        if (response.success) {
+                            adForm.reset();
+                            photoPreview.innerHTML = '<i class="fas fa-camera"></i> Предварительный просмотр фото';
+                            descCharCount.textContent = descriptionInput.maxLength;
+                            
+                            submissionNotification.style.display = 'block';
+                            setTimeout(() => {
+                                submissionNotification.style.display = 'none';
+                                // location.reload();  <-- ЭТА СТРОКА УДАЛЕНА
+                            }, 3000); 
+                        } else {
+                            alert(response.message || 'Ошибка при добавлении объявления. Попробуйте позже.');
+                        }
+                    });
+                };
+                reader.readAsDataURL(compressedFile);
+            } catch (error) {
+                console.error('Ошибка фото или сжатия:', error);
+                alert('Ошибка обработки фото. Убедитесь, что это изображение.');
+                loading.style.display = 'none';
+            }
+        });
+
+        // --- Логика Отображения Объявлений ---
+
+        function createAdElement(ad) {
+            const div = document.createElement('div');
+            div.className = `ad ${ad.isPremium ? 'premium' : ''}`;
+            div.dataset.id = ad.id;
+            // Добавил 'flex-grow: 1' к p, чтобы кнопка всегда была внизу
+            div.innerHTML = `
+                <img src="${ad.photo}" alt="${ad.title}">
+                <h3>${ad.title}</h3>
+                <p style="flex-grow: 1;">${ad.description}</p> 
+                ${ad.userId === userId ? `<button onclick="deleteAd(${ad.id})" title="Удалить мое объявление">Удалить</button>` : ''}
+            `;
+            // Делаем карточку flex-колонкой
+            div.style.display = 'flex';
+            div.style.flexDirection = 'column';
+            return div;
+        }
+
+        socket.on('initial-ads', (ads) => {
+            loading.style.display = 'none';
+            adGrid.innerHTML = '';
+            ads.sort((a, b) => b.isPremium - a.isPremium); 
+            ads.forEach(ad => adGrid.appendChild(createAdElement(ad)));
+        });
+
+        socket.on('new-ad', (ad) => {
+            const adElement = createAdElement(ad);
+            if (ad.isPremium) {
+                adGrid.prepend(adElement);
+            } else {
+                adGrid.appendChild(adElement);
+            }
+        });
+
+        socket.on('delete-ad', (id) => {
+            const adElement = document.querySelector(`.ad[data-id="${id}"]`);
+            if (adElement) adElement.remove();
+        });
+
+        function deleteAd(id) {
+            if (confirm('Вы уверены, что хотите удалить свое объявление?')) {
+                socket.emit('delete-ad', { adId: id, userId }, (response) => {
+                    if (!response.success) alert(response.message || 'Ошибка удаления. Вы не владелец?');
+                });
+            }
+        }
+        
+        // --- Логика Поиска и Фильтрации ---
+        
+        searchBar.addEventListener('input', () => {
+            const filter = searchBar.value.toLowerCase();
+            const ads = adGrid.getElementsByClassName('ad');
+            
+            Array.from(ads).forEach(ad => {
+                const title = ad.querySelector('h3').textContent.toLowerCase();
+                const description = ad.querySelector('p').textContent.toLowerCase();
+                
+                if (title.includes(filter) || description.includes(filter)) {
+                    ad.style.display = 'flex'; // Используем flex вместо 'block'
+                } else {
+                    ad.style.display = 'none';
+                }
+            });
+        });
+
+        // --- Логика Таймера Сброса ---
+        
+        socket.on('reset-time', (nextReset) => {
+            updateCountdown(nextReset);
+        });
+
+        function updateCountdown(nextReset) {
+            const interval = setInterval(() => {
+                const now = Date.now();
+                const timeLeft = nextReset - now;
+                if (timeLeft <= 0) {
+                    clearInterval(interval);
+                    timerElement.textContent = 'Сброс! Обновите страницу.';
+                    return;
+                }
+                const hours = Math.floor(timeLeft / (1000 * 60 * 60));
+                const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+                timerElement.textContent = `${hours} ч ${minutes} мин ${seconds} сек`;
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
