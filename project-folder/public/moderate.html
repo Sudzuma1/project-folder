@@ -3,41 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Модерация — Городская поляна</title>
+    <title>Модерация — Лесная поляна</title>
     <style>
         body { font-family: Arial, sans-serif; padding: 2rem; background: #f9f9f9; }
         .ad { border: 1px solid #ddd; padding: 1rem; margin-bottom: 1rem; border-radius: 8px; background: white; }
         img { max-width: 300px; }
-        button { padding: 0.5rem 1rem; margin-right: 0.5rem; cursor: pointer; }
+        button { padding: 0.5rem 1rem; margin-right: 0.5rem; margin-top: 0.5rem; cursor: pointer; }
         .approve { background: #4CAF50; color: white; }
         .premium { background: #2e7d32; color: white; }
-        .reject { background: #e74c3c; color: white; }
+        .reject, .delete { background: #e74c3c; color: white; }
+        .status { font-weight: bold; color: #444; }
     </style>
 </head>
 <body>
-    <h1>Модерация объявлений</h1>
-    <div id="pending"></div>
+    <h1>Модерация объявлений — Лесная поляна</h1>
+    <div id="ads"></div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
         const secret = new URLSearchParams(window.location.search).get('secret');
 
-        function loadPending() {
-            socket.emit('get-pending', secret, (ads) => {
-                const container = document.getElementById('pending');
-                container.innerHTML = ads.length ? '' : '<p>Нет объявлений на модерации</p>';
+        function loadAds() {
+            socket.emit('get-all-ads', secret, (ads) => {
+                const container = document.getElementById('ads');
+                container.innerHTML = ads.length ? '' : '<p>Нет объявлений</p>';
                 ads.forEach(ad => {
                     const div = document.createElement('div');
                     div.className = 'ad';
+                    const statusText = ad.status === 'pending' ? 'Ожидает модерации' : 'Одобрено';
+                    const statusClass = ad.status === 'pending' ? 'status' : 'status';
                     div.innerHTML = `
+                        <p class="${statusClass}">Статус: ${statusText} ${ad.isPremium ? '(Премиум)' : ''}</p>
                         <img src="${ad.photo}">
                         <h3>${ad.title}</h3>
                         <p><strong>Категория:</strong> ${ad.category}</p>
                         <p>${ad.description}</p>
-                        <button class="approve" onclick="approve('${ad.id}', false)">Одобрить</button>
-                        <button class="premium" onclick="approve('${ad.id}', true)">Одобрить как Премиум</button>
-                        <button class="reject" onclick="reject('${ad.id}')">Отклонить</button>
+                        <div>
+                            ${ad.status === 'pending' ? `
+                                <button class="approve" onclick="approve('${ad.id}', false)">Одобрить</button>
+                                <button class="premium" onclick="approve('${ad.id}', true)">Одобрить как Премиум</button>
+                                <button class="reject" onclick="reject('${ad.id}')">Отклонить</button>
+                            ` : ''}
+                            <button class="delete" onclick="deleteAny('${ad.id}')">Удалить</button>
+                        </div>
                     `;
                     container.appendChild(div);
                 });
@@ -46,16 +55,23 @@
 
         window.approve = function(id, premium) {
             socket.emit('approve-ad', { secret, adId: id, premium });
-            loadPending();
+            setTimeout(loadAds, 500);
         };
 
         window.reject = function(id) {
             socket.emit('reject-ad', { secret, adId: id });
-            loadPending();
+            setTimeout(loadAds, 500);
         };
 
-        loadPending();
-        setInterval(loadPending, 10000); // автообновление каждые 10 сек
+        window.deleteAny = function(id) {
+            if (confirm('Точно удалить это объявление?')) {
+                socket.emit('delete-any-ad', { secret, adId: id });
+                setTimeout(loadAds, 500);
+            }
+        };
+
+        loadAds();
+        setInterval(loadAds, 10000);
     </script>
 </body>
 </html>

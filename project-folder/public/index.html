@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Городская поляна 🥕</title>
+    <title>Лесная поляна</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
+        /* Весь CSS остаётся точно таким же, как в предыдущей версии */
         :root {
             --green-primary: #4CAF50;
             --green-light: #81C784;
@@ -208,31 +209,17 @@
             font-size: 1rem;
         }
 
-        /* Адаптивность для телефона */
         @media (max-width: 768px) {
             header { font-size: 1.6rem; padding: 1.2rem; }
-
             main { padding: 1rem; }
-
             .form, .promo { padding: 1.5rem; }
-
-            .ad-grid {
-                grid-template-columns: 1fr 1fr; /* строго 2 колонки */
-                gap: 1rem;
-            }
-
+            .ad-grid { grid-template-columns: 1fr 1fr; gap: 1rem; }
             .ad img { height: 120px; }
-
             .ad-content { padding: 0.8rem; }
-
             .ad h3 { font-size: 1rem; }
-
             .ad p { font-size: 0.85rem; }
-
             .category-badge, .premium-badge { font-size: 0.8rem; padding: 0.3rem 0.6rem; }
-
             .delete-btn { padding: 0.7rem; font-size: 0.9rem; }
-
             input, textarea, select, button, #searchBar { padding: 1.1rem; font-size: 1.1rem; }
         }
     </style>
@@ -267,7 +254,7 @@
         <div class="promo">
             <h3>Премиум-размещение</h3>
             <p>Ваше объявление всегда наверху. 500 тенге.</p>
-            <a href="https://wa.me/77057247069?text=Хочу%20премиум%20на%20Городской%20поляне" target="_blank">
+            <a href="https://wa.me/77057247069?text=Хочу%20премиум%20на%20Лесной%20поляне" target="_blank">
                 Написать в WhatsApp
             </a>
         </div>
@@ -281,9 +268,8 @@
     <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.min.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        // Весь JavaScript остаётся тем же, что был в предыдущей версии
-        // (предпросмотр фото, отправка формы, создание карточек, поиск и т.д.)
-        // Просто копируй из прошлого ответа — он полностью совместим
+        // JavaScript остаётся точно таким же, как в предыдущей исправленной версии
+        // (предпросмотр, отправка, создание карточек, поиск, удаление только своих и т.д.)
         const socket = io();
         const adForm = document.getElementById('adForm');
         const adGrid = document.getElementById('adGrid');
@@ -347,26 +333,67 @@
             const div = document.createElement('div');
             div.className = `ad ${ad.isPremium ? 'premium' : ''}`;
             div.dataset.id = ad.id;
+
+            const premiumBadge = ad.isPremium ? '<div class="premium-badge">Премиум</div>' : '';
+            const deleteButton = ad.userId === userId 
+                ? `<button class="delete-btn" onclick="deleteAd('${ad.id}')">Удалить</button>`
+                : '';
+
             div.innerHTML = `
                 <img src="${ad.photo}" alt="${ad.title}">
                 <div class="ad-content">
                     <div class="category-badge">${ad.category}</div>
-                    ${ad.isPremium ? '<div class="premium-badge">Премиум</div>' : ''}
+                    ${premiumBadge}
                     <h3>${ad.title}</h3>
                     <p>${ad.description}</p>
-                    ${ad.userId === userId ? '<button class="delete-btn" onclick="deleteAd(\'' + ad.id + '\')">Удалить</button>' : ''}
+                    ${deleteButton}
                 </div>
             `;
             return div;
         }
 
+        function deleteAd(adId) {
+            socket.emit('delete-ad', { adId, userId });
+        }
+
         socket.on('initial-ads', (ads) => {
             loading.style.display = 'none';
             adGrid.innerHTML = '';
-            // Премиум наверх
             const premium = ads.filter(a => a.isPremium);
             const regular = ads.filter(a => !a.isPremium);
             [...premium, ...regular].forEach(ad => adGrid.appendChild(createAdElement(ad)));
+            applySearch();
         });
 
-        socket.on('new-ad', (ad) =>
+        socket.on('new-ad', (ad) => {
+            const element = createAdElement(ad);
+            if (ad.isPremium) {
+                adGrid.prepend(element);
+            } else {
+                adGrid.appendChild(element);
+            }
+            applySearch();
+        });
+
+        socket.on('delete-ad', (adId) => {
+            const el = document.querySelector(`.ad[data-id="${adId}"]`);
+            if (el) el.remove();
+            applySearch();
+        });
+
+        function applySearch() {
+            const query = searchBar.value.toLowerCase().trim();
+            document.querySelectorAll('.ad').forEach(ad => {
+                const text = (
+                    ad.querySelector('h3').textContent +
+                    ad.querySelector('p').textContent +
+                    ad.querySelector('.category-badge').textContent
+                ).toLowerCase();
+                ad.style.display = query === '' || text.includes(query) ? '' : 'none';
+            });
+        }
+
+        searchBar.addEventListener('input', applySearch);
+    </script>
+</body>
+</html>

@@ -38,11 +38,12 @@ app.get('/moderate', (req, res) => {
 });
 
 io.on('connection', (socket) => {
-    // Отправляем одобренные объявления
+    // Отправляем только одобренные объявления обычным пользователям
     db.all(`SELECT * FROM ads WHERE status = 'approved' ORDER BY isPremium DESC, timestamp DESC`, [], (err, rows) => {
         if (!err) socket.emit('initial-ads', rows || []);
     });
 
+    // Создание нового объявления (на модерацию)
     socket.on('new-ad', (ad, callback) => {
         const { id, title, description, photo, category, userId } = ad;
         db.run(`INSERT INTO ads (id, title, description, photo, category, userId, timestamp, status, isPremium)
@@ -54,28 +55,32 @@ io.on('connection', (socket) => {
         );
     });
 
+    // Удаление своего объявления (только автором, только если одобрено)
     socket.on('delete-ad', ({ adId, userId }, callback) => {
         db.get('SELECT userId FROM ads WHERE id = ? AND status = "approved"', [adId], (err, row) => {
             if (row && row.userId === userId) {
                 db.run('DELETE FROM ads WHERE id = ?', [adId], () => {
                     io.emit('delete-ad', adId);
-                    callback({ success: true });
+                    if (callback) callback({ success: true });
                 });
             } else {
-                callback({ success: false });
+                if (callback) callback({ success: false });
             }
         });
     });
 
-    // Модерация
-    socket.on('get-pending', (secret, callback) => {
+    // Модерация: получить ВСЕ объявления (pending + approved)
+    socket.on('get-all-ads', (secret, callback) => {
         if (secret === ADMIN_SECRET) {
-            db.all('SELECT * FROM ads WHERE status = "pending"', [], (err, rows) => {
+            db.all(`SELECT * FROM ads ORDER BY timestamp DESC`, [], (err, rows) => {
                 callback(rows || []);
             });
+        } else {
+            callback([]);
         }
     });
 
+    // Модерация: одобрить объявление
     socket.on('approve-ad', ({ secret, adId, premium = false }) => {
         if (secret === ADMIN_SECRET) {
             const isPrem = premium ? 1 : 0;
@@ -87,9 +92,21 @@ io.on('connection', (socket) => {
         }
     });
 
+    // Модерация: отклонить (удалить) объявление на модерации
     socket.on('reject-ad', ({ secret, adId }) => {
         if (secret === ADMIN_SECRET) {
-            db.run('DELETE FROM ads WHERE id = ?', [adId]);
+            db.run('DELETE FROM ads WHERE id = ?', [adId], () => {
+                io.emit('delete-ad', adId); // чтобы у клиентов исчезло, если оно уже было видно
+            });
+        }
+    });
+
+    // Модерация: удалить ЛЮБОЕ объявление (даже уже одобренное)
+    socket.on('delete-any-ad', ({ secret, adId }) => {
+        if (secret === ADMIN_SECRET) {
+            db.run('DELETE FROM ads WHERE id = ?', [adId], () => {
+                io.emit('delete-ad', adId);
+            });
         }
     });
 });
