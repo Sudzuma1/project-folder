@@ -11,8 +11,11 @@ const io = new Server(server);
 const ADMIN_SECRET = process.env.ADMIN_SECRET || 'mysupersecret2026';
 
 const db = new sqlite3.Database('./ads.db', (err) => {
-    if (err) console.error(err);
-    else console.log('DB connected');
+    if (err) {
+        console.error('Ошибка подключения к БД:', err.message);
+    } else {
+        console.log('DB connected');
+    }
 });
 
 db.serialize(() => {
@@ -26,7 +29,13 @@ db.serialize(() => {
         timestamp INTEGER,
         status TEXT DEFAULT 'pending',
         isPremium INTEGER DEFAULT 0
-    )`);
+    )`, (err) => {
+        if (err) {
+            console.error('Ошибка создания таблицы:', err.message);
+        } else {
+            console.log('Таблица ads готова');
+        }
+    });
 });
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -38,24 +47,39 @@ app.get('/moderate', (req, res) => {
 });
 
 io.on('connection', (socket) => {
-    // Отправляем только одобренные объявления обычным пользователям
+    console.log('Клиент подключился:', socket.id);
+
+    // Отправляем одобренные объявления
     db.all(`SELECT * FROM ads WHERE status = 'approved' ORDER BY isPremium DESC, timestamp DESC`, [], (err, rows) => {
-        if (!err) socket.emit('initial-ads', rows || []);
+        if (err) {
+            console.error('Ошибка загрузки initial-ads:', err.message);
+        } else {
+            socket.emit('initial-ads', rows || []);
+        }
     });
 
-    // Создание нового объявления (на модерацию)
+    // Новое объявление
     socket.on('new-ad', (ad, callback) => {
         const { id, title, description, photo, category, userId } = ad;
+        console.log('Получено новое объявление:', { id, title, category, userId });
+
         db.run(`INSERT INTO ads (id, title, description, photo, category, userId, timestamp, status, isPremium)
                 VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', 0)`,
             [id, title, description, photo, category, userId, Date.now()],
             function(err) {
-                callback({ success: !err });
+                if (err) {
+                    console.error('ОШИБКА ВСТАВКИ ОБЪЯВЛЕНИЯ:', err.message);
+                    console.error('Данные объявления:', { id, title, category, userId, photoLength: photo?.length });
+                    callback({ success: false, error: err.message });
+                } else {
+                    console.log('Объявление успешно добавлено в pending:', id);
+                    callback({ success: true });
+                }
             }
         );
     });
 
-    // Удаление своего объявления (только автором, только если одобрено)
+    // Остальные обработчики (delete-ad, get-all-ads и т.д.) остаются без изменений
     socket.on('delete-ad', ({ adId, userId }, callback) => {
         db.get('SELECT userId FROM ads WHERE id = ? AND status = "approved"', [adId], (err, row) => {
             if (row && row.userId === userId) {
@@ -69,7 +93,6 @@ io.on('connection', (socket) => {
         });
     });
 
-    // Модерация: получить ВСЕ объявления (pending + approved)
     socket.on('get-all-ads', (secret, callback) => {
         if (secret === ADMIN_SECRET) {
             db.all(`SELECT * FROM ads ORDER BY timestamp DESC`, [], (err, rows) => {
@@ -80,7 +103,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Модерация: одобрить объявление
     socket.on('approve-ad', ({ secret, adId, premium = false }) => {
         if (secret === ADMIN_SECRET) {
             const isPrem = premium ? 1 : 0;
@@ -92,16 +114,14 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Модерация: отклонить (удалить) объявление на модерации
     socket.on('reject-ad', ({ secret, adId }) => {
         if (secret === ADMIN_SECRET) {
             db.run('DELETE FROM ads WHERE id = ?', [adId], () => {
-                io.emit('delete-ad', adId); // чтобы у клиентов исчезло, если оно уже было видно
+                io.emit('delete-ad', adId);
             });
         }
     });
 
-    // Модерация: удалить ЛЮБОЕ объявление (даже уже одобренное)
     socket.on('delete-any-ad', ({ secret, adId }) => {
         if (secret === ADMIN_SECRET) {
             db.run('DELETE FROM ads WHERE id = ?', [adId], () => {
