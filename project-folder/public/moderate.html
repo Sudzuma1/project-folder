@@ -2,47 +2,60 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Модерация</title>
-    <script src="/socket.io/socket.io.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Модерация — Городская поляна</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; background: #f4f4f4; }
-        .ad-card { background: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        button { cursor: pointer; padding: 8px 15px; border: none; border-radius: 4px; color: white; }
-        .approve { background: #4CAF50; }
-        .reject { background: #f44336; margin-left: 10px; }
+        body { font-family: Arial, sans-serif; padding: 2rem; background: #f9f9f9; }
+        .ad { border: 1px solid #ddd; padding: 1rem; margin-bottom: 1rem; border-radius: 8px; background: white; }
+        img { max-width: 300px; }
+        button { padding: 0.5rem 1rem; margin-right: 0.5rem; cursor: pointer; }
+        .approve { background: #4CAF50; color: white; }
+        .premium { background: #2e7d32; color: white; }
+        .reject { background: #e74c3c; color: white; }
     </style>
 </head>
 <body>
-    <h1>Панель модерации</h1>
-    <div id="pending-ads"></div>
+    <h1>Модерация объявлений</h1>
+    <div id="pending"></div>
 
+    <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
-        const urlParams = new URLSearchParams(window.location.search);
-        const secret = urlParams.get('secret');
+        const secret = new URLSearchParams(window.location.search).get('secret');
 
-        // Запрашиваем список при загрузке
-        socket.emit('get-pending-ads', secret, (ads) => {
-            const container = document.getElementById('pending-ads');
-            if (!ads || ads.length === 0) {
-                container.innerHTML = '<p>Новых объявлений нет.</p>';
-                return;
-            }
-            ads.forEach(ad => {
-                const div = document.createElement('div');
-                div.className = 'ad-card';
-                div.innerHTML = `
-                    <p>${ad.text}</p>
-                    <button class="approve" onclick="approveAd('${ad.id}')">Одобрить</button>
-                `;
-                container.appendChild(div);
+        function loadPending() {
+            socket.emit('get-pending', secret, (ads) => {
+                const container = document.getElementById('pending');
+                container.innerHTML = ads.length ? '' : '<p>Нет объявлений на модерации</p>';
+                ads.forEach(ad => {
+                    const div = document.createElement('div');
+                    div.className = 'ad';
+                    div.innerHTML = `
+                        <img src="${ad.photo}">
+                        <h3>${ad.title}</h3>
+                        <p><strong>Категория:</strong> ${ad.category}</p>
+                        <p>${ad.description}</p>
+                        <button class="approve" onclick="approve('${ad.id}', false)">Одобрить</button>
+                        <button class="premium" onclick="approve('${ad.id}', true)">Одобрить как Премиум</button>
+                        <button class="reject" onclick="reject('${ad.id}')">Отклонить</button>
+                    `;
+                    container.appendChild(div);
+                });
             });
-        });
-
-        function approveAd(adId) {
-            socket.emit('approve-ad', { adId, secret });
-            location.reload(); // Перезагружаем, чтобы обновить список
         }
+
+        window.approve = function(id, premium) {
+            socket.emit('approve-ad', { secret, adId: id, premium });
+            loadPending();
+        };
+
+        window.reject = function(id) {
+            socket.emit('reject-ad', { secret, adId: id });
+            loadPending();
+        };
+
+        loadPending();
+        setInterval(loadPending, 10000); // автообновление каждые 10 сек
     </script>
 </body>
 </html>

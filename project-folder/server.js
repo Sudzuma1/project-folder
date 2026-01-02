@@ -3,60 +3,72 @@ const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
 const sqlite3 = require('sqlite3').verbose();
-const fs = require('fs');
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// Исправлено: Храним базу в корне, чтобы работало на бесплатном тарифе
-const dbPath = './ads.db'; 
-const ADMIN_SECRET = process.env.ADMIN_SECRET || 'mysecret123';
+const ADMIN_SECRET = process.env.ADMIN_SECRET || 'mysupersecret2026';
 
-const db = new sqlite3.Database(dbPath, (err) => {
-    if (err) {
-        console.error('Ошибка подключения к базе:', err);
-    } else {
-        console.log('Подключено к базе данных:', dbPath);
-        db.serialize(() => {
-            db.run(`CREATE TABLE IF NOT EXISTS ads (
-                id TEXT PRIMARY KEY,
-                text TEXT,
-                userId TEXT,
-                timestamp INTEGER,
-                status TEXT DEFAULT 'pending'
-            )`);
-        });
-    }
+const db = new sqlite3.Database('./ads.db', (err) => {
+    if (err) console.error(err);
+    else console.log('DB connected');
+});
+
+db.serialize(() => {
+    db.run(`CREATE TABLE IF NOT EXISTS ads (
+        id TEXT PRIMARY KEY,
+        title TEXT,
+        description TEXT,
+        photo TEXT,
+        category TEXT,
+        userId TEXT,
+        timestamp INTEGER,
+        status TEXT DEFAULT 'pending',
+        isPremium INTEGER DEFAULT 0
+    )`);
 });
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// Страница модерации
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 app.get('/moderate', (req, res) => {
-    if (req.query.secret !== ADMIN_SECRET) return res.status(403).send('Доступ запрещен');
+    if (req.query.secret !== ADMIN_SECRET) return res.status(403).send('Доступ запрещён');
     res.sendFile(path.join(__dirname, 'public', 'moderate.html'));
 });
 
-// Socket.io логика
 io.on('connection', (socket) => {
-    db.all('SELECT * FROM ads WHERE status = "approved"', [], (err, rows) => {
-        if (!err) socket.emit('init-ads', rows);
+    // Отправляем одобренные объявления
+    db.all(`SELECT * FROM ads WHERE status = 'approved' ORDER BY isPremium DESC, timestamp DESC`, [], (err, rows) => {
+        if (!err) socket.emit('initial-ads', rows || []);
     });
 
-    socket.on('new-ad', (data, callback) => {
-        db.run('INSERT INTO ads (id, text, userId, timestamp, status) VALUES (?, ?, ?, ?, ?)',
-            [data.id, data.text, data.userId, Date.now(), 'pending'], (err) => {
-                if (err) callback({ success: false });
-                else callback({ success: true });
-            });
+    socket.on('new-ad', (ad, callback) => {
+        const { id, title, description, photo, category, userId } = ad;
+        db.run(`INSERT INTO ads (id, title, description, photo, category, userId, timestamp, status, isPremium)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', 0)`,
+            [id, title, description, photo, category, userId, Date.now()],
+            function(err) {
+                callback({ success: !err });
+            }
+        );
     });
 
-    socket.on('get-pending-ads', (secret, callback) => {
+    socket.on('delete-ad', ({ adId, userId }, callback) => {
+        db.get('SELECT userId FROM ads WHERE id = ? AND status = "approved"', [adId], (err, row) => {
+            if (row && row.userId === userId) {
+                db.run('DELETE FROM ads WHERE id = ?', [adId], () => {
+                    io.emit('delete-ad', adId);
+                    callback({ success: true });
+                });
+            } else {
+                callback({ success: false });
+            }
+        });
+    });
+
+    // Модерация
+    socket.on('get-pending', (secret, callback) => {
         if (secret === ADMIN_SECRET) {
             db.all('SELECT * FROM ads WHERE status = "pending"', [], (err, rows) => {
                 callback(rows || []);
@@ -64,18 +76,23 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('approve-ad', (data) => {
-        if (data.secret === ADMIN_SECRET) {
-            db.run('UPDATE ads SET status = "approved" WHERE id = ?', [data.adId], () => {
-                db.get('SELECT * FROM ads WHERE id = ?', [data.adId], (err, row) => {
+    socket.on('approve-ad', ({ secret, adId, premium = false }) => {
+        if (secret === ADMIN_SECRET) {
+            const isPrem = premium ? 1 : 0;
+            db.run('UPDATE ads SET status = "approved", isPremium = ? WHERE id = ?', [isPrem, adId], () => {
+                db.get('SELECT * FROM ads WHERE id = ?', [adId], (err, row) => {
                     if (row) io.emit('new-ad', row);
                 });
             });
         }
     });
+
+    socket.on('reject-ad', ({ secret, adId }) => {
+        if (secret === ADMIN_SECRET) {
+            db.run('DELETE FROM ads WHERE id = ?', [adId]);
+        }
+    });
 });
 
-const PORT = process.env.PORT || 10000;
-server.listen(PORT, () => {
-    console.log(`Сервер запущен на порту ${PORT}`);
-});
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => console.log(`Сервер запущен на порту ${PORT}`));
